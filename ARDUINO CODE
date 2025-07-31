@@ -1,0 +1,103 @@
+#include <DHT.h>
+
+#define DHTPIN 2          // DHT22 data pin
+#define DHTTYPE DHT22
+
+#define LED_PIN 8         // LED simulates heater
+#define BUZZER_PIN 9      // Buzzer for overheat warning
+
+DHT dht(DHTPIN, DHTTYPE);
+
+// Temperature thresholds (in Celsius)
+float startHeatingTemp = 30.0;
+float targetTemp = 50.0;
+float overheatTemp = 55.0;
+float stabilizingBuffer = 2.0;
+
+enum HeaterState {
+  IDLE,
+  HEATING,
+  STABILIZING,
+  TARGET_REACHED,
+  OVERHEAT
+};
+
+HeaterState currentState = IDLE;
+
+void setup() {
+  Serial.begin(9600);
+  dht.begin();
+
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+
+  digitalWrite(LED_PIN, LOW);
+  digitalWrite(BUZZER_PIN, LOW);
+
+  Serial.println("System Initialized");
+}
+
+void loop() {
+  float temperature = dht.readTemperature();
+
+  if (isnan(temperature)) {
+    Serial.println("Failed to read from DHT sensor!");
+    delay(2000);
+    return;
+  }
+
+  // State transitions based on temperature
+  if (temperature < startHeatingTemp) {
+    currentState = IDLE;
+  } else if (temperature >= startHeatingTemp && temperature < (targetTemp - stabilizingBuffer)) {
+    currentState = HEATING;
+  } else if (temperature >= (targetTemp - stabilizingBuffer) && temperature < targetTemp) {
+    currentState = STABILIZING;
+  } else if (temperature >= targetTemp && temperature < overheatTemp) {
+    currentState = TARGET_REACHED;
+  } else if (temperature >= overheatTemp) {
+    currentState = OVERHEAT;
+  }
+
+  // Perform actions based on state
+  switch (currentState) {
+    case IDLE:
+      digitalWrite(LED_PIN, LOW);
+      digitalWrite(BUZZER_PIN, LOW);
+      logStatus(temperature, "IDLE");
+      break;
+
+    case HEATING:
+      digitalWrite(LED_PIN, HIGH);
+      digitalWrite(BUZZER_PIN, LOW);
+      logStatus(temperature, "HEATING");
+      break;
+
+    case STABILIZING:
+      digitalWrite(LED_PIN, HIGH);
+      digitalWrite(BUZZER_PIN, LOW);
+      logStatus(temperature, "STABILIZING");
+      break;
+
+    case TARGET_REACHED:
+      digitalWrite(LED_PIN, LOW);
+      digitalWrite(BUZZER_PIN, LOW);
+      logStatus(temperature, "TARGET REACHED");
+      break;
+
+    case OVERHEAT:
+      digitalWrite(LED_PIN, LOW);
+      digitalWrite(BUZZER_PIN, HIGH);
+      logStatus(temperature, "OVERHEAT!!!");
+      break;
+  }
+
+  delay(2000); // Wait 2 seconds before next read
+}
+
+void logStatus(float temp, String state) {
+  Serial.print("Temperature: ");
+  Serial.print(temp);
+  Serial.print(" °C | State: ");
+  Serial.println(state);
+}
