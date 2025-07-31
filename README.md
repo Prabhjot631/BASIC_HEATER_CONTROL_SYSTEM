@@ -1,5 +1,8 @@
 # BASIC_HEATER_CONTROL_SYSTEM
 
+This system is made by PRABHJOT SINGH
+Email address: prabhjotsingh200020@gmail.com
+
 WOKWI SIMULATION:   https://wokwi.com/projects/438007957425787905
 
 The Arduino code performs the following key tasks:
